@@ -11,6 +11,9 @@ function Home() {
         <Link to="/signup">
           <button className="home-button">Sign Up</button>
         </Link>
+        <Link to = "/audiorecorder">
+          <button className="home-button">Audio Recorder</button>
+        </Link>
         <Link to="/authenticate">
           <button className="home-button">Authenticate</button>
         </Link>
