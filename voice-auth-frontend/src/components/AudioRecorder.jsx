@@ -1,8 +1,6 @@
-// src/AudioRecorder.js
 import React, { useState, useRef } from 'react';
-import axios from 'axios';
 
-const AudioRecorder = () => {
+const AudioRecorder = ({ onRecordingComplete }) => {
   const [mediaRecorder, setMediaRecorder] = useState(null);
   const [audioUrl, setAudioUrl] = useState('');
   const audioChunks = useRef([]);
@@ -10,31 +8,16 @@ const AudioRecorder = () => {
   const startRecording = async () => {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     const recorder = new MediaRecorder(stream);
-    
+
     recorder.ondataavailable = event => {
       audioChunks.current.push(event.data);
     };
 
-    recorder.onstop = async () => {
+    recorder.onstop = () => {
       const audioBlob = new Blob(audioChunks.current, { type: 'audio/wav' });
       audioChunks.current = [];
-      const audioUrl = URL.createObjectURL(audioBlob);
-      setAudioUrl(audioUrl);
-
-      const formData = new FormData();
-      formData.append('audioFile', audioBlob, 'recording.wav');
-
-      console.log(formData)
-      try {
-        await axios.post('https://53c4-34-126-126-246.ngrok-free.app/upload_audio', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        });
-        alert('Audio uploaded successfully!');
-      } catch (error) {
-        console.error('Error uploading audio:', error);
-      }
+      setAudioUrl(URL.createObjectURL(audioBlob));
+      onRecordingComplete(audioBlob); // Send audio blob to SignUp
     };
 
     recorder.start();
@@ -48,10 +31,10 @@ const AudioRecorder = () => {
   };
 
   return (
-    <div>
-      <button onClick={startRecording}>Start Recording</button>
-      <button onClick={stopRecording} disabled={!mediaRecorder}>Stop Recording</button>
-      {audioUrl && <audio controls src={audioUrl} />}
+    <div className="flex justify-between">
+      <button onClick={startRecording} className="shadow-submit mx-20 mb-5 text-center dark:shadow-submit-dark rounded-sm bg-primary px-9 py-4 text-base font-medium text-white duration-300 hover:bg-primary/90">Start Recording</button>
+      <button onClick={stopRecording} disabled={!mediaRecorder} className=" mb-5 mx-20 shadow-submit text-center dark:shadow-submit-dark rounded-sm bg-primary px-9 py-4 text-base font-medium text-white duration-300 hover:bg-primary/90">Stop Recording</button>
+      {audioUrl && <audio controls src={audioUrl}  />}
     </div>
   );
 };
