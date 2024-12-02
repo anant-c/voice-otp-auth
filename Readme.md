@@ -6,7 +6,7 @@ Install node: https://nodejs.org/en/download/prebuilt-installer
 
 run in powershell : `git clone https://github.com/anant-c/voice-otp-auth.git` 
 
-run `cd voice-auth-frontend`
+run `cd voice-otp-auth/voice-auth-frontend`
 
 run `npm i`
 
