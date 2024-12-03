@@ -23,7 +23,17 @@ function SignUp() {
   const fetchRandomPrompt = async () => {
     const response = await fetch('http://metaphorpsum.com/paragraphs/1/6');
     const text = await response.text();
-    setRandomPrompt(text);
+
+    if(selectedLanguage ==="en"){
+      setRandomPrompt(text);
+    }
+    else{
+      const resData = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|${selectedLanguage}`);
+      const data = await resData.json();
+      setTranslatedPrompt(data.responseData.translatedText || text);
+      setRandomPrompt(data.responseData.translatedText || text);
+    }
+    
   };
 
   const translatePrompt = async (text, targetLanguage) => {
@@ -73,7 +83,7 @@ function SignUp() {
     });
 
     try {
-      const response = await fetch('https://d8da-34-145-86-226.ngrok-free.app/upload_audio', {
+      const response = await fetch('https://6d13-34-142-160-57.ngrok-free.app/upload_audio', {
         method: 'POST',
         body: formData,
       });
