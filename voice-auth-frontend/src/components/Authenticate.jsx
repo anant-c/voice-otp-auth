@@ -10,6 +10,11 @@ function Authenticate() {
   const [translatedPrompt, setTranslatedPrompt] = useState('');
   const [selectedLanguage, setSelectedLanguage] = useState('en');
   const [outputMessage, setOutputMessage] = useState('');
+  const [isOtpSent, setIsOtpSent] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [otp, setOtp] = useState('');
+  const [otpVerificationMessage, setOtpVerificationMessage] = useState('');
+  const [isOtpVerified, setIsOtpVerified] = useState(false);
 
   // Language options
   const languages = [
@@ -83,7 +88,7 @@ function Authenticate() {
     setAudioSample(audioBlob);
   };
 
-  // Submit data to backend
+  // Submit data to backend for voice authentication
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -98,19 +103,55 @@ function Authenticate() {
     formData.append('audio_sample', audioSample, 'audio_sample.wav'); // Ensure consistent file naming
 
     try {
-      const response = await axios.post('https://ff2c-35-229-229-229.ngrok-free.app/authenticate', formData, {
+      const response = await axios.post('https://fc09-34-85-237-134.ngrok-free.app/authenticate', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
       // Check response and set the message accordingly
       if (response.data.status === 'success') {
         setOutputMessage(`Authentication successful. Avg decision: ${response.data.avg_decision}`);
+        setIsOtpSent(true); // Proceed to OTP
       } else {
         setOutputMessage(`Authentication failed. Avg decision: ${response.data.avg_decision}`);
       }
     } catch (error) {
       console.error('Error submitting form:', error.response || error.message);
       setOutputMessage('Submission failed. Please try again.');
+    }
+  };
+
+  // Send OTP
+  const handleSendOtp = async () => {
+    try {
+      const response = await axios.post('https://fc09-34-85-237-134.ngrok-free.app/send-otp', {
+        phone: phoneNumber,
+      });
+      if (response.data.message) {
+        alert('OTP sent successfully!');
+      }
+    } catch (error) {
+      console.error('Error sending OTP:', error.response || error.message);
+      alert('Failed to send OTP. Please try again.');
+    }
+  };
+
+  // Verify OTP
+  const handleOtpSubmit = async () => {
+    try {
+      const response = await axios.post('https://fc09-34-85-237-134.ngrok-free.app/verify-otp', {
+        phone: phoneNumber,
+        otp: otp,
+      });
+      if (response.data.message) {
+        setIsOtpVerified(true);
+        setOtpVerificationMessage('OTP verified successfully!');
+      } else {
+        setIsOtpVerified(false);
+        setOtpVerificationMessage(response.data.error || 'Invalid OTP.');
+      }
+    } catch (error) {
+      console.error('Error verifying OTP:', error.response || error.message);
+      setOtpVerificationMessage('OTP verification failed. Please try again.');
     }
   };
 
@@ -141,14 +182,11 @@ function Authenticate() {
           className="wow fadeInUp shadow-three dark:bg-gray-dark mb-12 rounded-sm bg-white px-8 py-11 sm:p-[55px] lg:mb-5 lg:px-8 xl:p-[55px]"
           data-wow-delay=".15s"
         >
-          <p className="max-w-[800px] text-center mb-12 text-lg !leading-relaxed text-body-color-dark">
-            Please perform the voice recognition first then proceed with the OTP verification.
-          </p>
           <label className="block text-sm font-medium text-dark dark:text-white">User ID:</label>
           <input
             type="text"
             placeholder="Enter your User ID"
-            className="my-5 border-stroke dark:text-body-color-dark dark:shadow-two w-full rounded-sm border bg-[#f8f8f8] px-6 py-3 text-base text-body-color outline-none focus:border-primary dark:border-transparent dark:bg-[#2C303B] dark:focus:border-primary dark:focus:shadow-none"
+            className="my-5 border-stroke dark:text-body-color-dark w-full rounded-sm border bg-[#f8f8f8] px-6 py-3 text-base text-body-color outline-none focus:border-primary"
             value={userId}
             onChange={(e) => setUserId(e.target.value)}
             required
@@ -163,7 +201,7 @@ function Authenticate() {
           <p className="max-w-[800px] text-center my-5 text-lg !leading-relaxed text-body-color-dark">
             Please loudly read the below text ...
           </p>
-          <blockquote className="max-w-[800px] mb-5 border-stroke dark:text-body-color-dark dark:shadow-two w-full rounded-sm border bg-[#f8f8f8] px-6 py-3 text-base text-body-color outline-none focus:border-primary dark:border-transparent dark:bg-[#2C303B] dark:focus:border-primary dark:focus:shadow-none">
+          <blockquote className="max-w-[800px] mb-5 border-stroke dark:text-body-color-dark w-full rounded-sm border bg-[#f8f8f8] px-6 py-3 text-base text-body-color">
             {translatedPrompt || randomPrompt}
           </blockquote>
           <AudioRecorder onRecordingComplete={handleAudioCapture} />
@@ -182,6 +220,52 @@ function Authenticate() {
           </div>
         )}
       </form>
+      {isOtpSent && (
+        <div
+          className="otp-verification wow fadeInUp shadow-three dark:bg-gray-dark mb-12 rounded-sm bg-white px-8 py-11 sm:p-[55px] lg:mb-5 lg:px-8 xl:p-[55px]"
+          data-wow-delay=".15s"
+        >
+          <label className="block text-sm font-medium text-dark dark:text-white">Phone Number:</label>
+          <input
+            type="tel"
+            placeholder="Enter your Phone Number"
+            className="my-5 border-stroke dark:text-body-color-dark w-full rounded-sm border bg-[#f8f8f8] px-6 py-3 text-base text-body-color outline-none focus:border-primary"
+            value={phoneNumber}
+            onChange={(e) => setPhoneNumber(e.target.value)}
+          />
+          <button
+            type="button"
+            onClick={handleSendOtp}
+            className="shadow-submit w-full text-center dark:shadow-submit-dark rounded-sm bg-primary px-9 py-4 text-base font-medium text-white duration-300 hover:bg-primary/90"
+          >
+            Send OTP
+          </button>
+          <label className="block text-sm font-medium text-dark dark:text-white mt-5">Enter OTP:</label>
+          <input
+            type="text"
+            placeholder="Enter OTP"
+            className="my-5 border-stroke dark:text-body-color-dark w-full rounded-sm border bg-[#f8f8f8] px-6 py-3 text-base text-body-color outline-none focus:border-primary"
+            value={otp}
+            onChange={(e) => setOtp(e.target.value)}
+          />
+          <button
+            type="button"
+            onClick={handleOtpSubmit}
+            className="shadow-submit w-full text-center dark:shadow-submit-dark rounded-sm bg-primary px-9 py-4 text-base font-medium text-white duration-300 hover:bg-primary/90"
+          >
+            Verify OTP
+          </button>
+          {otpVerificationMessage && (
+            <p
+              className={`otp-message text-lg mt-5 ${
+                isOtpVerified ? 'text-green-600' : 'text-red-600'
+              }`}
+            >
+              {otpVerificationMessage}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
