@@ -83,7 +83,7 @@ function SignUp() {
     });
 
     try {
-      const response = await fetch('https://6d13-34-142-160-57.ngrok-free.app/upload_audio', {
+      const response = await fetch('https://1b04-34-86-40-65.ngrok-free.app/upload_audio', {
         method: 'POST',
         body: formData,
       });

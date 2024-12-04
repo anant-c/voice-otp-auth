@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import AudioRecorder from './AudioRecorder';
-import languageIcon from '../assets/languagechat.png';
+import AudioRecorder from './AudioRecorder'; // Ensure you have this component
+import languageIcon from '../assets/languagechat.png'; // Ensure the image path is correct
 
 function Authenticate() {
   const [userId, setUserId] = useState('');
@@ -9,7 +9,9 @@ function Authenticate() {
   const [randomPrompt, setRandomPrompt] = useState('');
   const [translatedPrompt, setTranslatedPrompt] = useState('');
   const [selectedLanguage, setSelectedLanguage] = useState('en');
+  const [outputMessage, setOutputMessage] = useState('');
 
+  // Language options
   const languages = [
     { code: 'en', name: 'English' },
     { code: 'hi', name: 'Hindi' },
@@ -19,17 +21,31 @@ function Authenticate() {
     { code: 'bn', name: 'Bengali' },
   ];
 
+  // Fetch random prompt and optionally translate it
   const fetchRandomPrompt = async () => {
     try {
       const response = await fetch('http://metaphorpsum.com/paragraphs/1/6');
       const text = await response.text();
-      setRandomPrompt(text);
-      translatePrompt(text, selectedLanguage);
+
+      if (selectedLanguage === 'en') {
+        setRandomPrompt(text);
+      } else {
+        const resData = await fetch(
+          `https://api.mymemory.translated.net/get?q=${encodeURIComponent(
+            text
+          )}&langpair=en|${selectedLanguage}`
+        );
+        const data = await resData.json();
+        setTranslatedPrompt(data.responseData.translatedText || text);
+        setRandomPrompt(data.responseData.translatedText || text);
+      }
     } catch (error) {
-      console.error('Failed to fetch random prompt', error);
+      console.error('Error fetching prompt:', error);
+      alert('Failed to fetch prompt. Please try again.');
     }
   };
 
+  // Translate prompt to selected language
   const translatePrompt = async (text, targetLanguage) => {
     if (targetLanguage === 'en') {
       setTranslatedPrompt(text);
@@ -37,25 +53,37 @@ function Authenticate() {
     }
 
     try {
-      const response = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|${targetLanguage}`);
+      const response = await fetch(
+        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(
+          text
+        )}&langpair=en|${targetLanguage}`
+      );
       const data = await response.json();
       setTranslatedPrompt(data.responseData.translatedText || text);
     } catch (error) {
-      console.error('Translation failed', error);
-      setTranslatedPrompt(text); // Fallback to the original text if translation fails
+      console.error('Translation failed:', error);
+      setTranslatedPrompt(text); // Fallback to original text
     }
   };
 
+  // Handle language change and re-translate prompt
   const handleLanguageChange = (e) => {
     const newLanguage = e.target.value;
     setSelectedLanguage(newLanguage);
     translatePrompt(randomPrompt, newLanguage);
   };
 
+  // Capture audio recording
   const handleAudioCapture = (audioBlob) => {
+    if (!audioBlob) {
+      alert('Audio recording failed. Please try again.');
+      return;
+    }
+    console.log('Captured audio blob:', audioBlob);
     setAudioSample(audioBlob);
   };
 
+  // Submit data to backend
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -67,18 +95,26 @@ function Authenticate() {
     const formData = new FormData();
     formData.append('user_id', userId);
     formData.append('prompt', randomPrompt);
-    formData.append('audio_sample', audioSample, 'sample.wav');
+    formData.append('audio_sample', audioSample, 'audio_sample.wav'); // Ensure consistent file naming
 
     try {
-      const response = await axios.post('http://localhost:5000/authenticate', formData, {
+      const response = await axios.post('https://ff2c-35-229-229-229.ngrok-free.app/authenticate', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      alert(response.data.message);
+
+      // Check response and set the message accordingly
+      if (response.data.status === 'success') {
+        setOutputMessage(`Authentication successful. Avg decision: ${response.data.avg_decision}`);
+      } else {
+        setOutputMessage(`Authentication failed. Avg decision: ${response.data.avg_decision}`);
+      }
     } catch (error) {
-      alert(error.response?.data?.message || 'Submission failed. Please try again.');
+      console.error('Error submitting form:', error.response || error.message);
+      setOutputMessage('Submission failed. Please try again.');
     }
   };
 
+  // Fetch a new prompt on component load
   useEffect(() => {
     fetchRandomPrompt();
   }, []);
@@ -138,6 +174,13 @@ function Authenticate() {
             Submit
           </button>
         </div>
+        {outputMessage && (
+          <div className="output-message text-center mt-5">
+            <p className={`text-lg ${outputMessage.includes('successful') ? 'text-green-600' : 'text-red-600'}`}>
+              {outputMessage}
+            </p>
+          </div>
+        )}
       </form>
     </div>
   );
